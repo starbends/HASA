@@ -10,7 +10,7 @@ i.     Utilises FFT to convert the signal into a spectrum and also feed back thi
 
 ii.    Takes the sample rate, and analyses it's true value.
 
-iii.   Considers Noise/Hiss and dynamically removes it based on the amplitude of the track, so that distorted music's values aren't affected, but are still accuarate. 
+iii.   Considers Noise/Hiss and dynamically removes it based on the amplitude of the track, so that distorted music's values aren't affected, but are still accurate. 
 
 iv.    If the returned value of your file is less than the specified value, it is considered Low-Fi. Currently this value is 19kHz - for leniance with amplitude consistency. However the correct value would be 22.05kHz for flat-line correction. 
 
