@@ -3,10 +3,10 @@ Hyper Accurate Spectrum Analyser
 
 # How it works:
 
-By feeding it a folder, of which it is your choice, HASA will determine whether the file can "legally" be called Hi-Fi or Low-Fi. 
+By feeding it a file, of which it is your choice, HASA will determine whether the file can "legally" be called Hi-Fi or Low-Fi. 
 It does this in several ways. 
 
-i.     Utilises FFT to convert the signal into a spectrum and also feed back this information in the log.
+i.     Utilises FFT to convert the signal into a spectrum and also feed back this information in the console.
 
 ii.    Takes the sample rate, and analyses it's true value.
 
@@ -16,11 +16,11 @@ iv.    If the returned value of your file is less than the specified value, it i
 
 # How it can be used: 
 
-i.     Take your whole folder full of music (or just a selection of folders) and paste the directory into the var "directory_to_analyze"
+i.     Open the executable, and feed it a file (folders coming soon...)
 
-ii.    Wait Patiently... if it's a big selection of music, it could take several minutes, or potentially hours. It does do each file one at a time. This is meant for quick analysis of downloaded music.
+ii.    Wait Patiently... (it's fast) This is meant for quick analysis of downloaded music.
 
-iii.   Once it is complete, it will print a .txt document of all affected files, and which folders they're located within, to the specified location of var "output_file".
+iii.   Once it is complete, it will open a plot window to analyse visually, as well as printing the true value in the console.
 
 # How you can help this project:
 
