@@ -1,6 +1,6 @@
-#created by starbends, 2024
-#use and modify as you see fit
-#credit me if you'd like to - or don't, i don't really care i guess.
+#fuck you
+#bitch
+#starbends 2024
 
 import os
 import numpy as np
@@ -8,38 +8,44 @@ from scipy.io import wavfile
 from scipy.fft import fft
 import soundfile as sf
 import matplotlib.pyplot as plt
+import tkinter as tk
+from tkinter import filedialog
+import ctypes
 
 def analyze_wav_file(filepath, threshold_khz=19, plot=False):
     try:
         sample_rate, data = wavfile.read(filepath)
-        
+
         #handles taking the means of the channels in stereo files
         if len(data.shape) > 1:
             data = np.mean(data, axis=1)
-        
+
         #fft on audio data
         fft_values = np.abs(fft(data))
-        freqs = np.fft.fftfreq(len(fft_values), 1/sample_rate)
-        
-        #considers only the pos freq and ignores the negative half
-        positive_freqs = freqs[:len(freqs)//2]
-        positive_fft_values = fft_values[:len(fft_values)//2]
-        
-        #fft value normalisation / dynamic noise adjustment logic
-        max_amplitude = np.max(positive_fft_values)
-        amplitude_threshold = 0.003 * max_amplitude
-        significant_freqs = positive_freqs[positive_fft_values > amplitude_threshold]
-        
-        if len(significant_freqs) > 0:
-            max_freq_khz = np.max(significant_freqs) / 1000
-        else:
-            max_freq_khz = 0
+        freqs = np.fft.fftfreq(len(fft_values), 1 / sample_rate)
 
-        #debug shiz for shiz yo
+        #considers only the pos freq and ignores the negative half
+        positive_freqs = freqs[:len(freqs) // 2]
+        positive_fft_values = fft_values[:len(fft_values) // 2]
+
+        #dynamic noise thresholding based on amplitude
+        max_amplitude = np.max(positive_fft_values)
+        amplitude_threshold = 0.003 * max_amplitude #adjust this value to finetune noise level
+        significant_freqs = positive_freqs[positive_fft_values > amplitude_threshold]
+
+        max_freq_khz = np.max(significant_freqs) / 1000 if len(significant_freqs) > 0 else 0
+
         print(f"File: {filepath}")
-        print(f"Sampling Rate: {sample_rate} Hz")
+        print(f"Sample Rate: {sample_rate} Hz")
         print(f"Max Significant Frequency: {max_freq_khz} kHz")
-        
+
+        #returns the answer
+        if max_freq_khz >= threshold_khz:
+            print("Audio is considered Hi-Fi")
+        else:
+            print("Audio is considered Low-Fi")
+
+        #this stuff handles the opened plot window
         if plot:
             plt.figure(figsize=(12, 6))
             plt.plot(positive_freqs / 1000, positive_fft_values)
@@ -48,42 +54,46 @@ def analyze_wav_file(filepath, threshold_khz=19, plot=False):
             plt.title(f'Frequency Spectrum of {os.path.basename(filepath)}')
             plt.axvline(x=threshold_khz, color='r', linestyle='--', label='Threshold')
             plt.legend()
-            plt.show()
-        
+
+            #sets plot window to filename
+            plt.get_current_fig_manager().set_window_title(os.path.basename(filepath))
+            
+            plt.show()  #this blocks until the plot window is closed
+
         return max_freq_khz >= threshold_khz
 
-    #don't surf that wave.
-    except Exception as e:
-        print(f"Error processing WAV file {filepath}: {e}")
+    except (IOError, ValueError) as e:
+        print(f"Error processing .WAV file {filepath}: {e}")
         return False
 
-#no dupe comments
 def analyze_flac_file(filepath, threshold_khz=19, plot=False):
     try:
         data, sample_rate = sf.read(filepath)
-        
+
         if len(data.shape) > 1:
             data = np.mean(data, axis=1)
-        
+
         fft_values = np.abs(fft(data))
-        freqs = np.fft.fftfreq(len(fft_values), 1/sample_rate)
-        
-        positive_freqs = freqs[:len(freqs)//2]
-        positive_fft_values = fft_values[:len(fft_values)//2]
-        
+        freqs = np.fft.fftfreq(len(fft_values), 1 / sample_rate)
+
+        positive_freqs = freqs[:len(freqs) // 2]
+        positive_fft_values = fft_values[:len(fft_values) // 2]
+
         max_amplitude = np.max(positive_fft_values)
         amplitude_threshold = 0.003 * max_amplitude
         significant_freqs = positive_freqs[positive_fft_values > amplitude_threshold]
-        
-        if len(significant_freqs) > 0:
-            max_freq_khz = np.max(significant_freqs) / 1000
-        else:
-            max_freq_khz = 0
+
+        max_freq_khz = np.max(significant_freqs) / 1000 if len(significant_freqs) > 0 else 0
 
         print(f"File: {filepath}")
-        print(f"Sampling Rate: {sample_rate} Hz")
+        print(f"Sample Rate: {sample_rate} Hz")
         print(f"Max Significant Frequency: {max_freq_khz} kHz")
-        
+
+        if max_freq_khz >= threshold_khz:
+            print("Audio is considered Hi-Fi")
+        else:
+            print("Audio is considered Low-Fi")
+
         if plot:
             plt.figure(figsize=(12, 6))
             plt.plot(positive_freqs / 1000, positive_fft_values)
@@ -92,73 +102,74 @@ def analyze_flac_file(filepath, threshold_khz=19, plot=False):
             plt.title(f'Frequency Spectrum of {os.path.basename(filepath)}')
             plt.axvline(x=threshold_khz, color='r', linestyle='--', label='Threshold')
             plt.legend()
+
+            plt.get_current_fig_manager().set_window_title(os.path.basename(filepath))
+            
             plt.show()
 
         return max_freq_khz >= threshold_khz
-    
-    except Exception as e:
-        print(f"Error processing FLAC file {filepath}: {e}")
+
+    except (IOError, ValueError) as e:
+        print(f"Error processing .FLAC file {filepath}: {e}")
         return False
 
-def analyze_audio_files(directory, threshold_khz=19, output_file="low_fi_folders.txt"):
-    low_fi_folders = {}
+def process_audio_file(filepath):
+    #check the file has an extension and is supported
+    supported_extensions = {'.wav': analyze_wav_file, '.flac': analyze_flac_file}
+    _, ext = os.path.splitext(filepath.lower())
 
-    for root, _, files in os.walk(directory):
-        folder_contains_low_fi = False
-        low_fi_files = []
+    if ext in supported_extensions:
+        #call the right function based on the file ext
+        supported_extensions[ext](filepath, threshold_khz=19, plot=True) #set plot=True if you want the spectrum plot or False if you don't :)
+    else:
+        print(f"Unsupported file format: {filepath}")
 
-        #filetypes shiz
-        for file in files:
-            filepath = os.path.join(root, file)
-            try:
-                if file.endswith('.wav'):
-                    is_hi_fi = analyze_wav_file(filepath, threshold_khz)
-                elif file.endswith('.flac'):
-                    is_hi_fi = analyze_flac_file(filepath, threshold_khz)
-                else:
-                    print(f"Unsupported file format: {filepath}")
-                    continue  #skips unsupported file formats
-                
-                if is_hi_fi:
-                    print(f"{filepath} is Hi-Fi")
-                else:
-                    folder_contains_low_fi = True
-                    low_fi_files.append(file)
-                    print(f"{filepath} is Low-Fi")
+def select_file():
+    root = tk.Tk()
+    root.withdraw()  #hides the root tk window
 
-            #fuck your stupid fucking corrupted files
-            except Exception as e:
-                print(f"Error processing file {filepath}: {e}")
+    #opens the file browser window if enter is pressed
+    file_path = filedialog.askopenfilename(
+        title="Select an Audio File",
+        filetypes=[
+            ("Audio Files", "*.wav *.flac"),
+            ("All Files", "*.*"),
+        ]
+    )
+    return file_path
 
-        if folder_contains_low_fi:
-            low_fi_folders[root] = low_fi_files
-    
-    #debug prints
-    print(f"Collected Low-Fi folders and files: {low_fi_folders}")
-    
-    #writing collected data to txt file for your perusing and consideration
-    try:
-        with open(output_file, 'w') as f:
-            if low_fi_folders:
-                for folder, files in low_fi_folders.items():
-                    f.write(f"Folder: {folder}\n")
-                    for file in files:
-                        f.write(f"  Low-Fi File: {file}\n")
-                    f.write("\n")
-                print(f"Low-Fi folders and files have been written to {output_file}")
+def consolename(title):
+    ctypes.windll.kernel32.SetConsoleTitleW(title)
+
+def main():
+    consolename("HASA - Created by: starbends, 2024")
+
+    while True: #looping this allows multiple inputs. keep that
+        print("Drag'n'Drop an audio file into the console.")
+        print("alternatively, press Enter to browse for a file manually.")
+        
+        user_input = input().strip()
+
+        if user_input.lower() == 'exit':
+            print("Exiting...")
+            break
+
+        if user_input:
+            #removes quotes if present
+            file_path = user_input.strip('"\'')
+            if os.path.isfile(file_path):
+                print(f"Selected file: {os.path.basename(file_path)}")
+                process_audio_file(file_path)
             else:
-                f.write("No Low-Fi folders found.\n")
-    except Exception as e:
-        print(f"Error writing to file {output_file}: {e}")
+                print(f"File not found: {file_path}")
+        else:
+            #opens file select if no drag'n'drop input
+            file_path = select_file()
+            if file_path:
+                print(f"Selected file: {os.path.basename(file_path)}")
+                process_audio_file(file_path)
+            else:
+                print("No file was selected.")
 
-# Change these to what you'd like to analyze, where you'd like it to output, and threshold adjustment should you want.
-directory_to_analyze = r"full_directory_name_here"
-output_file = r"output_directory_goes_here"
-analyze_audio_files(directory_to_analyze, threshold_khz=19, output_file=output_file)
-
-
-
-#this is code to set frequency thresholds to ignore lower frequencies however i'm not utilising it
-#min_freq_threshold = 20  # Hz
-#significant_freqs = positive_freqs[positive_fft_values > amplitude_threshold]
-#significant_freqs = significant_freqs[significant_freqs > min_freq_threshold]
+if __name__ == "__main__":
+    main()
